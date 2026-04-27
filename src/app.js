@@ -4,8 +4,8 @@ const app = express();
 app.use(express.json());
 
 app.get('/health' , (req,res) =>{
-    cin
-res.json({status:"ok"})
+    
+re.json({status:"ok"})
 })
 
 app.get('/api/users' , (req,res) =>{
