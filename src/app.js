@@ -5,7 +5,7 @@ app.use(express.json());
 
 app.get('/health' , (req,res) =>{
     
-re.json({status:"ok"})
+res.json({status:"ok"})
 })
 
 app.get('/api/users' , (req,res) =>{
