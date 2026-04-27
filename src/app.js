@@ -18,6 +18,3 @@ if(!name) return res.status(400).json({error:'name is required'})
 })
 
 module.exports = app
-
-//node app
-//server 
