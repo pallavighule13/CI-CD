@@ -4,6 +4,7 @@ const app = express();
 app.use(express.json());
 
 app.get('/health' , (req,res) =>{
+    cin
 res.json({status:"ok"})
 })
 
