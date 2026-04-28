@@ -7,18 +7,44 @@ on:
 
 jobs:
   ci:
-    name: Docker Build and Health Check
+    name: Docker Build and Push to GHCR
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
-        run: docker build -t nodeapp .
+      # GHCR needs to know WHO is pushing the image.
+      # github.actor = the GitHub username who triggered the push (you)
+      # github.token = a secret GitHub creates AUTOMATICALLY for every pipeline run.
+      # You do NOT need to create this secret yourself — it just exists.
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Run Container
+      # Build the image.
+      # ghcr.io/YOURUSERNAME/REPONAME:TAG is the required GHCR format.
+      # github.repository = "yourname/simpleapp" — GitHub fills this automatically.
+      # github.sha = the commit hash e.g. "a3f9c12" — unique for every push.
+      # So the image name becomes: ghcr.io/yourname/simpleapp:a3f9c12
+      - name: Build Docker image
         run: |
-          docker run -d -p 3000:3000 --name nodecontainer nodeapp
+          docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+          docker tag ghcr.io/${{ github.repository }}:${{ github.sha }} ghcr.io/${{ github.repository }}:latest
+
+      # Run the container and hit /health to confirm app starts correctly.
+      # This happens BEFORE pushing — no point pushing a broken image.
+      - name: Run container and health check
+        run: |
+          docker run -d -p 3000:3000 --name nodecontainer ghcr.io/${{ github.repository }}:${{ github.sha }}
           sleep 5
           curl http://localhost:3000/health
+
+      # Push BOTH tags to GHCR:
+      # :a3f9c12  — unique tag, used for rollback (every push has its own)
+      # :latest   — always points to the most recent build
+      # Only push when on main branch — no point storing images for every feature branch
+      - name: Push to GHCR
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}:latest
