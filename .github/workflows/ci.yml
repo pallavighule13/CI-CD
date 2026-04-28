@@ -19,17 +19,20 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
-          docker tag ghcr.io/${{ github.repository }}:${{ github.sha }} ghcr.io/${{ github.repository }}:latest
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker build -t ${IMAGE}:${{ github.sha }} .
+          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:latest
 
       - name: Run container and health check
         run: |
-          docker run -d -p 3000:3000 --name nodecontainer ghcr.io/${{ github.repository }}:${{ github.sha }}
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker run -d -p 3000:3000 --name nodecontainer ${IMAGE}:${{ github.sha }}
           sleep 5
           curl http://localhost:3000/health
 
       - name: Push to GHCR
         if: github.ref == 'refs/heads/main'
         run: |
-          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}:latest
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker push ${IMAGE}:${{ github.sha }}
+          docker push ${IMAGE}:latest
