@@ -1,0 +1,64 @@
+# docker-compose.yml
+# Place this in the ROOT of your project — same level as your Dockerfile
+
+# version tells Docker Compose which syntax version to use
+version: "3.8"
+
+# services = list of all containers you want to run
+services:
+
+  # ── SERVICE 1: Your Node.js app ─────────────────────────────────
+  app:                          # "app" is the service name — you choose this
+    build: .                    # build image using Dockerfile in current folder
+    container_name: nodeapp     # name of the running container
+    ports:
+      - "4000:4000"             # host:container — your laptop:3000 → container:3000
+    environment:                # env variables injected into the container
+      - PORT=4000
+      - DB_HOST=postgres        # ← NOT localhost! use the service name "postgres"
+      - DB_PORT=5432
+      - DB_NAME=mydb
+      - DB_USER=admin
+      - DB_PASSWORD=secret
+    depends_on:
+      - postgres                # start postgres BEFORE starting app
+      - redis                   # start redis BEFORE starting app
+    networks:
+      - appnetwork              # join this private network
+
+  # ── SERVICE 2: PostgreSQL database ──────────────────────────────
+  postgres:                     # service name — Node app uses this as hostname
+    image: postgres:15          # use official postgres image, version 15
+    container_name: postgresdb
+    ports:
+      - "5432:5432"             # expose so you can connect from your laptop too
+    environment:
+      - POSTGRES_DB=mydb        # creates this database automatically on first run
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # store data here so it survives restarts
+    networks:
+      - appnetwork
+
+  # ── SERVICE 3: Redis cache ───────────────────────────────────────
+  redis:
+    image: redis:7              # official redis image
+    container_name: rediscache
+    ports:
+      - "6379:6379"
+    networks:
+      - appnetwork
+
+# volumes = persistent storage
+# pgdata is a named volume managed by Docker
+# data survives even when containers are stopped or removed
+volumes:
+  pgdata:
+
+# networks = private network all services share
+# services can reach each other by service name
+# nothing outside can reach them unless you expose a port
+networks:
+  appnetwork:
+    driver: bridge
